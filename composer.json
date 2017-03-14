@@ -1,0 +1,15 @@
+{
+	"name": "silverstripe-platform/elderclient",
+	"description": "SSP docs site",
+	"require": {
+		"php": ">=5.4",
+		"symfony/yaml": "^2.0",
+		"mnapoli/front-yaml": "^1.5",
+		"guzzlehttp/guzzle": "~6.0"
+	},
+	"require-dev": {
+	},
+	"config": {
+		"process-timeout": 600
+	}
+}
