@@ -33,7 +33,13 @@ $service = $elderConfig['elderUrl'];
 
 $tree = load($elderConfig['pages']);
 $pages = [];
-findAllPages($tree, $pages);
+
+walk($tree, 'Dir', function($dir) {
+	if (!is_dir($dir->path)) {
+		echo sprintf('Creating missing "%s"' . PHP_EOL, $dir->path);
+		mkdir($dir->path);
+	}
+});
 
 // Process Page nodes, writing rendered md documents into "content".
 $http = new \GuzzleHttp\Client([
@@ -41,7 +47,7 @@ $http = new \GuzzleHttp\Client([
 	'timeout'  => 5.0,
 	'connect_timeout' => 2.0,
 ]);
-foreach ($pages as $page) {
+walk($tree, 'Page', function($page) use ($elderConfig, $http) {
 	echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
 	$path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
 
@@ -73,7 +79,7 @@ $mdContent
 EOF;
 
 	file_put_contents($page->path, $md);
-}
+});
 
 /**
  * Loads the 'pages' structure converting it to Dir & Page tree.
@@ -88,18 +94,18 @@ function load($spec) {
 }
 
 /**
- * Descends into the page tree and finds all pages.
+ * Descends into the page tree and executes $f on $class.
  *
  * @param Node $node Root node to search from
- * @param array $list Resulting list of all Page nodes
+ * @param string $class Class to execute on
+ * @param Callable $f Closure to call
  */
-function findAllPages($node, &$list = null) {
+function walk($node, $class, Callable $f) {
+	if (get_class($node)===$class) {
+		$f($node);
+	}
 	foreach($node->children as $child) {
-		if (get_class($child)==='Dir') {
-			findAllPages($child, $list);
-		} else {
-			$list[] = $child;
-		}
+		walk($child, $class, $f);
 	}
 }
 
@@ -123,16 +129,16 @@ abstract class Node {
 
 class Dir extends Node {
 	public function load($children) {
-		foreach ($children as $name => $children) {
+		foreach ($children as $name => $child) {
 			$path = sprintf('%s/%s', $this->path, $name);
-			if (empty($children['kb'])) {
+			if (empty($child['kb'])) {
 				// Must be directory if it has no 'kb' entry.
 				$node = new Dir($path, $this);
 			} else {
 				$node = new Page($path . '.md', $this);
 			}
 			$this->children[] = $node;
-			$node->load($children);
+			$node->load($child);
 		}
 	}
 }
