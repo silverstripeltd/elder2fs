@@ -28,7 +28,7 @@ if (!$included) {
 }
 
 // Load and parse all configuration.
-$elderConfig = \Symfony\Component\Yaml\Yaml::parse('eldertofs.yml');
+$elderConfig = \Symfony\Component\Yaml\Yaml::parse('elder2fs.yml');
 $service = $elderConfig['elderUrl'];
 
 $tree = load($elderConfig['pages']);

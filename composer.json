@@ -1,5 +1,5 @@
 {
-	"name": "silverstripe-platform/eldertofs",
+	"name": "silverstripe-platform/elder2fs",
 	"description": "Elder to filesystem converter",
 	"require": {
 		"php": ">=5.4",
@@ -11,5 +11,8 @@
 	},
 	"config": {
 		"process-timeout": 600
-	}
+	},
+	"bin": [
+		"bin/elder2fs"
+	]
 }
