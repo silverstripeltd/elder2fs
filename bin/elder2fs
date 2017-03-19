@@ -49,7 +49,7 @@ $http = new \GuzzleHttp\Client([
 ]);
 walk($tree, 'Page', function($page) use ($elderConfig, $http) {
 	echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
-	$path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
+	$path = sprintf('article/%s/%s/%s.md', $page->version, $page->locale, $page->kb);
 
 	try {
 		$response = $http->request('POST', $path, [
@@ -58,8 +58,8 @@ walk($tree, 'Page', function($page) use ($elderConfig, $http) {
 			]
 		]);
 	} catch (\Exception $e) {
-		echo sprintf('Failed to generate "%s": "%s"', $page->path, $e->getMessage());
-		continue;
+		echo sprintf('Failed to generate "%s": "%s"', $page->path, $e->getResponse()->getBody());
+        return;
 	}
 	$body = (string)$response->getBody();
 	$extraFrontMatter = array_merge($page->meta, [
@@ -69,15 +69,14 @@ walk($tree, 'Page', function($page) use ($elderConfig, $http) {
 	$parser = new Mni\FrontYAML\Parser();
 	$document = $parser->parse($body, false);
 	$mdContent = $document->getContent();
-	$frontMatter = \Symfony\Component\Yaml\Yaml::dump(array_merge($document->getYAML(), $extraFrontMatter), 999999);
+    $frontMatter = $document->getYAML();
+    if (empty($frontMatter) || !is_array($frontMatter)) {
+        $frontMatter = [];
+    }
 
-	$md =<<<EOF
----
-$frontMatter
----
-$mdContent
-EOF;
+    $ymlFrontMatter = \Symfony\Component\Yaml\Yaml::dump(array_merge($frontMatter, $extraFrontMatter), 999999);
 
+    $md = sprintf("---" . PHP_EOL . $ymlFrontMatter . PHP_EOL . "---" . PHP_EOL . $mdContent . PHP_EOL);
 	file_put_contents($page->path, $md);
 });
 
