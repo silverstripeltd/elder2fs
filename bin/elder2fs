@@ -54,7 +54,7 @@ walk($tree, 'Page', function($page) use ($elderConfig, $http) {
 	try {
 		$response = $http->request('POST', $path, [
 			'json' => [
-				'tokens' => $elderConfig['tokens'],
+				'variables' => $elderConfig['variables'],
 			]
 		]);
 	} catch (\Exception $e) {
