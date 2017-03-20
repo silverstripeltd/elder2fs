@@ -59,8 +59,14 @@ walk($tree, 'Page', function($page) use ($elderConfig, $http)
                 'variables' => $elderConfig['variables'],
             ]
         ]);
+    } catch (GuzzleHttp\Exception\ConnectException $e) {
+        echo sprintf('Failed to connect to "%s%s": %s' . PHP_EOL, $http->getConfig('base_uri'), $path, $e->getMessage());
+        return;
+    } catch (GuzzleHttp\Exception\RequestException $e) {
+        echo sprintf('Failed to generate "%s": "%s"' . PHP_EOL, $page->path, $e->getResponse()->getBody());
+        return;
     } catch (\Exception $e) {
-        echo sprintf('Failed to generate "%s": "%s"', $page->path, $e->getResponse()->getBody());
+        echo sprintf('Failed to generate "%s": "%s"' . PHP_EOL, $page->path, $e->getMessage());
         return;
     }
     $body = (string)$response->getBody();
