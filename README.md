@@ -16,11 +16,11 @@ In your project root, create `elder2fs.yml`. Here is an example:
         companyName: Terrible Ideas Ltd.
     pages:
       stuff:
-        manual:
+        manual.md:
           kb: kb003456
           version: 1.7
           locale: en_NZ
-        installation:
+        installation.md:
           kb: kb000224
 
 `elderUrl` is the address at which Elder is running. It's specific to your infrastructure.
