@@ -27,29 +27,13 @@ if (!$included) {
     throw new RuntimeException('Autoload failed. Do you need to run composer install?');
 }
 
-// Load and parse all configuration.
-$elderConfig = \Symfony\Component\Yaml\Yaml::parse('elder2fs.yml');
+$config = new \Elder\Config('elder2fs.yml');
+$config->load();
 
-if (!file_exists('elder2fs.yml')) {
-    throw new RuntimeException('elder2fs.yml file not found.');
-}
-if (empty($elderConfig['elderUrl'])) {
-    throw new RuntimeException('elder2fs.yml file has no "elderUrl" entry.');
-}
-if (empty($elderConfig['pages'])) {
-    throw new RuntimeException('elder2fs.yml file has no "pages" entry.');
-}
-if (empty($elderConfig['variables'])) {
-    $elderConfig['variables'] = [];
-}
-
-$service = $elderConfig['elderUrl'];
-
-$tree = load($elderConfig['pages']);
+$tree = load($config->getPages());
 $pages = [];
 
-walk($tree, 'Dir', function($dir)
-{
+walk($tree, 'Dir', function ($dir) {
     if (!is_dir($dir->path)) {
         echo sprintf('Creating missing "%s"' . PHP_EOL, $dir->path);
         mkdir($dir->path);
@@ -58,23 +42,23 @@ walk($tree, 'Dir', function($dir)
 
 // Process Page nodes, writing rendered md documents into "content".
 $http = new \GuzzleHttp\Client([
-    'base_uri' => $elderConfig['elderUrl'],
-    'timeout'  => 5.0,
+    'base_uri' => $config->getService(),
+    'timeout' => 5.0,
     'connect_timeout' => 2.0,
 ]);
-walk($tree, 'Page', function($page) use ($elderConfig, $http)
-{
+walk($tree, 'Page', function ($page) use ($config, $http) {
     echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
     $path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
 
     try {
         $response = $http->request('POST', $path, [
             'json' => [
-                'variables' => $elderConfig['variables'],
+                'variables' => $config->getVariables(),
             ]
         ]);
     } catch (GuzzleHttp\Exception\ConnectException $e) {
-        echo sprintf('Failed to connect to "%s%s": %s' . PHP_EOL, $http->getConfig('base_uri'), $path, $e->getMessage());
+        echo sprintf('Failed to connect to "%s%s": %s' . PHP_EOL, $http->getConfig('base_uri'), $path,
+            $e->getMessage());
         return;
     } catch (GuzzleHttp\Exception\RequestException $e) {
         echo sprintf('Failed to generate "%s": "%s"' . PHP_EOL, $page->path, $e->getResponse()->getBody());
@@ -124,10 +108,10 @@ function load($spec)
  */
 function walk($node, $class, Callable $f)
 {
-    if (get_class($node)===$class) {
+    if (get_class($node) === $class) {
         $f($node);
     }
-    foreach($node->children as $child) {
+    foreach ($node->children as $child) {
         walk($child, $class, $f);
     }
 }
@@ -139,8 +123,11 @@ function walk($node, $class, Callable $f)
  */
 abstract class Node
 {
+
     public $path;
+
     public $parent;
+
     public $children = [];
 
     public function __construct($path = '.', $parent = null)
@@ -154,6 +141,7 @@ abstract class Node
 
 class Dir extends Node
 {
+
     public function load($children)
     {
         foreach ($children as $name => $child) {
@@ -172,9 +160,13 @@ class Dir extends Node
 
 class Page extends Node
 {
+
     public $kb;
+
     public $locale;
+
     public $version;
+
     public $meta;
 
     public function load($children)
