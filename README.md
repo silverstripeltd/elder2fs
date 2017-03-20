@@ -14,7 +14,7 @@ In your project root, create `elder2fs.yml`. Here is an example:
 	tokens:
 	  replacement:
 	    token:
-	    companyName: Terrible Ideas Ltd.
+	      companyName: Terrible Ideas Ltd.
 	pages:
 	  stuff:
 	    manual:
