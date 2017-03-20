@@ -51,7 +51,7 @@ $http = new \GuzzleHttp\Client([
 walk($tree, 'Page', function($page) use ($elderConfig, $http)
 {
     echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
-    $path = sprintf('article/%s/%s/%s.md', $page->version, $page->locale, $page->kb);
+    $path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
 
     try {
         $response = $http->request('POST', $path, [
