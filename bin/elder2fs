@@ -6,25 +6,25 @@ set_time_limit(0);
 
 // the bin could be somewhere we don't expect
 $paths = [
-	__DIR__ . "/../autoload.php",
-	__DIR__ . "/../vendor/autoload.php",
-	__DIR__ . "/../../vendor/autoload.php",
-	__DIR__ . "/../../../vendor/autoload.php",
-	__DIR__ . "/../../../../vendor/autoload.php",
+    __DIR__ . "/../autoload.php",
+    __DIR__ . "/../vendor/autoload.php",
+    __DIR__ . "/../../vendor/autoload.php",
+    __DIR__ . "/../../../vendor/autoload.php",
+    __DIR__ . "/../../../../vendor/autoload.php",
 ];
 
 $included = false;
 
 foreach ($paths as $path) {
-	if (file_exists($path)) {
-		require_once $path;
-		$included = true;
-		break;
-	}
+    if (file_exists($path)) {
+        require_once $path;
+        $included = true;
+        break;
+    }
 }
 
 if (!$included) {
-	throw new RuntimeException('Autoload failed. Do you need to run composer install?');
+    throw new RuntimeException('Autoload failed. Do you need to run composer install?');
 }
 
 // Load and parse all configuration.
@@ -34,51 +34,52 @@ $service = $elderConfig['elderUrl'];
 $tree = load($elderConfig['pages']);
 $pages = [];
 
-walk($tree, 'Dir', function($dir) {
-	if (!is_dir($dir->path)) {
-		echo sprintf('Creating missing "%s"' . PHP_EOL, $dir->path);
-		mkdir($dir->path);
-	}
+walk($tree, 'Dir', function($dir)
+{
+    if (!is_dir($dir->path)) {
+        echo sprintf('Creating missing "%s"' . PHP_EOL, $dir->path);
+        mkdir($dir->path);
+    }
 });
 
 // Process Page nodes, writing rendered md documents into "content".
 $http = new \GuzzleHttp\Client([
     'base_uri' => $elderConfig['elderUrl'],
-	'timeout'  => 5.0,
-	'connect_timeout' => 2.0,
+    'timeout'  => 5.0,
+    'connect_timeout' => 2.0,
 ]);
-walk($tree, 'Page', function($page) use ($elderConfig, $http) {
-	echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
-	$path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
+walk($tree, 'Page', function($page) use ($elderConfig, $http)
+{
+    echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
+    $path = sprintf('article/%s/%s/%s.md', $page->version, $page->locale, $page->kb);
 
-	try {
-		$response = $http->request('POST', $path, [
-			'json' => [
-				'tokens' => $elderConfig['tokens'],
-			]
-		]);
-	} catch (\Exception $e) {
-		echo sprintf('Failed to generate "%s": "%s"', $page->path, $e->getMessage());
-		continue;
-	}
-	$body = (string)$response->getBody();
-	$extraFrontMatter = array_merge($page->meta, [
-		'notoc' => true,
-	]);
+    try {
+        $response = $http->request('POST', $path, [
+            'json' => [
+                'variables' => $elderConfig['variables'],
+            ]
+        ]);
+    } catch (\Exception $e) {
+        echo sprintf('Failed to generate "%s": "%s"', $page->path, $e->getResponse()->getBody());
+        return;
+    }
+    $body = (string)$response->getBody();
+    $extraFrontMatter = array_merge($page->meta, [
+        'notoc' => true,
+    ]);
 
-	$parser = new Mni\FrontYAML\Parser();
-	$document = $parser->parse($body, false);
-	$mdContent = $document->getContent();
-	$frontMatter = \Symfony\Component\Yaml\Yaml::dump(array_merge($document->getYAML(), $extraFrontMatter), 999999);
+    $parser = new Mni\FrontYAML\Parser();
+    $document = $parser->parse($body, false);
+    $mdContent = $document->getContent();
+    $frontMatter = $document->getYAML();
+    if (empty($frontMatter) || !is_array($frontMatter)) {
+        $frontMatter = [];
+    }
 
-	$md =<<<EOF
----
-$frontMatter
----
-$mdContent
-EOF;
+    $ymlFrontMatter = \Symfony\Component\Yaml\Yaml::dump(array_merge($frontMatter, $extraFrontMatter), 999999);
 
-	file_put_contents($page->path, $md);
+    $md = sprintf("---" . PHP_EOL . $ymlFrontMatter . PHP_EOL . "---" . PHP_EOL . $mdContent . PHP_EOL);
+    file_put_contents($page->path, $md);
 });
 
 /**
@@ -87,10 +88,11 @@ EOF;
  * @param array $spec Pages array
  * @return Dir Root directory node
  */
-function load($spec) {
-	$root = new Dir();
-	$root->load($spec);
-	return $root;
+function load($spec)
+{
+    $root = new Dir();
+    $root->load($spec);
+    return $root;
 }
 
 /**
@@ -100,13 +102,14 @@ function load($spec) {
  * @param string $class Class to execute on
  * @param Callable $f Closure to call
  */
-function walk($node, $class, Callable $f) {
-	if (get_class($node)===$class) {
-		$f($node);
-	}
-	foreach($node->children as $child) {
-		walk($child, $class, $f);
-	}
+function walk($node, $class, Callable $f)
+{
+    if (get_class($node)===$class) {
+        $f($node);
+    }
+    foreach($node->children as $child) {
+        walk($child, $class, $f);
+    }
 }
 
 /**
@@ -114,45 +117,51 @@ function walk($node, $class, Callable $f) {
  * This allows us to traverse the structure more easily, and work with nested paths.
  * This will allow us to generate the entire md structure more easily later.
  */
-abstract class Node {
-	public $path;
-	public $parent;
-	public $children = [];
+abstract class Node
+{
+    public $path;
+    public $parent;
+    public $children = [];
 
-	public function __construct($path = '.', $parent = null) {
-		$this->path = $path;
-		$this->parent = $parent;
-	}
+    public function __construct($path = '.', $parent = null)
+    {
+        $this->path = $path;
+        $this->parent = $parent;
+    }
 
-	abstract public function load($children);
+    abstract public function load($children);
 }
 
-class Dir extends Node {
-	public function load($children) {
-		foreach ($children as $name => $child) {
-			$path = sprintf('%s/%s', $this->path, $name);
-			if (empty($child['kb'])) {
-				// Must be directory if it has no 'kb' entry.
-				$node = new Dir($path, $this);
-			} else {
-				$node = new Page($path . '.md', $this);
-			}
-			$this->children[] = $node;
-			$node->load($child);
-		}
-	}
+class Dir extends Node
+{
+    public function load($children)
+    {
+        foreach ($children as $name => $child) {
+            $path = sprintf('%s/%s', $this->path, $name);
+            if (empty($child['kb'])) {
+                // Must be directory if it has no 'kb' entry.
+                $node = new Dir($path, $this);
+            } else {
+                $node = new Page($path . '.md', $this);
+            }
+            $this->children[] = $node;
+            $node->load($child);
+        }
+    }
 }
 
-class Page extends Node {
-	public $kb;
-	public $locale;
-	public $version;
-	public $meta;
+class Page extends Node
+{
+    public $kb;
+    public $locale;
+    public $version;
+    public $meta;
 
-	public function load($children) {
-		$this->kb = $children['kb'];
-		$this->locale = !empty($children['locale']) ? $children['locale'] : 'en_NZ';
-		$this->version = !empty($children['version']) ? $children['version'] : 'master';
-		$this->meta = !empty($children['meta']) ? $children['meta'] : [];
-	}
+    public function load($children)
+    {
+        $this->kb = $children['kb'];
+        $this->locale = !empty($children['locale']) ? $children['locale'] : 'en_NZ';
+        $this->version = !empty($children['version']) ? $children['version'] : 'master';
+        $this->meta = !empty($children['meta']) ? $children['meta'] : [];
+    }
 }
