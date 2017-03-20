@@ -29,6 +29,20 @@ if (!$included) {
 
 // Load and parse all configuration.
 $elderConfig = \Symfony\Component\Yaml\Yaml::parse('elder2fs.yml');
+
+if (!file_exists('elder2fs.yml')) {
+    throw new RuntimeException('elder2fs.yml file not found.');
+}
+if (empty($elderConfig['elderUrl'])) {
+    throw new RuntimeException('elder2fs.yml file has no "elderUrl" entry.');
+}
+if (empty($elderConfig['pages'])) {
+    throw new RuntimeException('elder2fs.yml file has no "pages" entry.');
+}
+if (empty($elderConfig['variables'])) {
+    $elderConfig['variables'] = [];
+}
+
 $service = $elderConfig['elderUrl'];
 
 $tree = load($elderConfig['pages']);
