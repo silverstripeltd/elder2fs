@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+use Monolog\Formatter\LineFormatter;
+use Monolog\Handler\StreamHandler;
+
 ini_set('memory_limit', '512M');
 set_time_limit(0);
 
@@ -27,153 +30,35 @@ if (!$included) {
     throw new RuntimeException('Autoload failed. Do you need to run composer install?');
 }
 
+$log = new Monolog\Logger('elder');
+$handler = new StreamHandler('php://stdout', Monolog\Logger::INFO);
+$formatter = new LineFormatter("%message%" . PHP_EOL, null, false, true);
+$handler->setFormatter($formatter);
+$log->pushHandler($handler);
+
+// load the configuration
 $config = new \Elder\Config('elder2fs.yml');
 $config->load();
 
-$tree = load($config->getPages());
-$pages = [];
+// Set up the root directory
+$root = new \Elder\Dir();
+// ... and build the tree of pages and directories
+$root->load($config->getPages());
 
-walk($tree, 'Dir', function ($dir) {
+// Make sure that each directory has a folder on disk
+$root->walk('Elder\Dir', function ($dir) use ($log) {
     if (!is_dir($dir->path)) {
-        echo sprintf('Creating missing "%s"' . PHP_EOL, $dir->path);
+        $log->info(sprintf('Creating missing "%s"' . PHP_EOL, $dir->path));
         mkdir($dir->path);
     }
 });
 
-// Process Page nodes, writing rendered md documents into "content".
-$http = new \GuzzleHttp\Client([
+$client = new \GuzzleHttp\Client([
     'base_uri' => $config->getService(),
     'timeout' => 5.0,
     'connect_timeout' => 2.0,
 ]);
-walk($tree, 'Page', function ($page) use ($config, $http) {
-    echo sprintf('Processing "%s"' . PHP_EOL, $page->path);
-    $path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
 
-    try {
-        $response = $http->request('POST', $path, [
-            'json' => [
-                'variables' => $config->getVariables(),
-            ]
-        ]);
-    } catch (GuzzleHttp\Exception\ConnectException $e) {
-        echo sprintf('Failed to connect to "%s%s": %s' . PHP_EOL, $http->getConfig('base_uri'), $path,
-            $e->getMessage());
-        return;
-    } catch (GuzzleHttp\Exception\RequestException $e) {
-        echo sprintf('Failed to generate "%s": "%s"' . PHP_EOL, $page->path, $e->getResponse()->getBody());
-        return;
-    } catch (\Exception $e) {
-        echo sprintf('Failed to generate "%s": "%s"' . PHP_EOL, $page->path, $e->getMessage());
-        return;
-    }
-    $body = (string)$response->getBody();
-    $extraFrontMatter = array_merge($page->meta, [
-        'notoc' => true,
-    ]);
-
-    $parser = new Mni\FrontYAML\Parser();
-    $document = $parser->parse($body, false);
-    $mdContent = $document->getContent();
-    $frontMatter = $document->getYAML();
-    if (empty($frontMatter) || !is_array($frontMatter)) {
-        $frontMatter = [];
-    }
-
-    $ymlFrontMatter = \Symfony\Component\Yaml\Yaml::dump(array_merge($frontMatter, $extraFrontMatter), 999999);
-
-    $md = sprintf("---" . PHP_EOL . $ymlFrontMatter . PHP_EOL . "---" . PHP_EOL . $mdContent . PHP_EOL);
-    file_put_contents($page->path, $md);
-});
-
-/**
- * Loads the 'pages' structure converting it to Dir & Page tree.
- *
- * @param array $spec Pages array
- * @return Dir Root directory node
- */
-function load($spec)
-{
-    $root = new Dir();
-    $root->load($spec);
-    return $root;
-}
-
-/**
- * Descends into the page tree and executes $f on $class.
- *
- * @param Node $node Root node to search from
- * @param string $class Class to execute on
- * @param Callable $f Closure to call
- */
-function walk($node, $class, Callable $f)
-{
-    if (get_class($node) === $class) {
-        $f($node);
-    }
-    foreach ($node->children as $child) {
-        walk($child, $class, $f);
-    }
-}
-
-/**
- * Node is a building block of a page tree built from an array.
- * This allows us to traverse the structure more easily, and work with nested paths.
- * This will allow us to generate the entire md structure more easily later.
- */
-abstract class Node
-{
-
-    public $path;
-
-    public $parent;
-
-    public $children = [];
-
-    public function __construct($path = '.', $parent = null)
-    {
-        $this->path = $path;
-        $this->parent = $parent;
-    }
-
-    abstract public function load($children);
-}
-
-class Dir extends Node
-{
-
-    public function load($children)
-    {
-        foreach ($children as $name => $child) {
-            $path = sprintf('%s/%s', $this->path, $name);
-            if (empty($child['kb'])) {
-                // Must be directory if it has no 'kb' entry.
-                $node = new Dir($path, $this);
-            } else {
-                $node = new Page($path, $this);
-            }
-            $this->children[] = $node;
-            $node->load($child);
-        }
-    }
-}
-
-class Page extends Node
-{
-
-    public $kb;
-
-    public $locale;
-
-    public $version;
-
-    public $meta;
-
-    public function load($children)
-    {
-        $this->kb = $children['kb'];
-        $this->locale = !empty($children['locale']) ? $children['locale'] : 'en_NZ';
-        $this->version = !empty($children['version']) ? $children['version'] : 'master';
-        $this->meta = !empty($children['meta']) ? $children['meta'] : [];
-    }
-}
+// Process Page nodes, writing rendered md documents into "content".
+$processor = new \Elder\Processor($client, $config->getVariables(), $log);
+$root->walk('Elder\Page', [$processor, 'process']);

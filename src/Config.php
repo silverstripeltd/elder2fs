@@ -40,7 +40,7 @@ class Config
 
         // Load and parse all configuration.
         $values = Yaml::parse(file_get_contents($this->filePath));
-        if(!is_array($values)) {
+        if (!is_array($values)) {
             throw new \RuntimeException($this->filePath . ' file could not to be parsed as yaml');
         }
         $this->values = $values;
@@ -79,5 +79,4 @@ class Config
     {
         return $this->values['variables'];
     }
-
 }
