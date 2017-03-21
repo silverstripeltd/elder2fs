@@ -105,7 +105,8 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($vars, $config->getVariables());
     }
 
-    protected function getConfig(array $values) {
+    protected function getConfig(array $values)
+    {
         return new Config($this->setConfig($values));
     }
 
