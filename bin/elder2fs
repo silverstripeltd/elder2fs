@@ -53,7 +53,14 @@ $root->walk('Elder\Dir', function ($dir) use ($log) {
     }
 });
 
+$handlerStack = \GuzzleHttp\HandlerStack::create(new \GuzzleHttp\Handler\CurlHandler());
+$handlerStack->push(
+    \GuzzleHttp\Middleware::retry(
+        \Elder\Retry::create_decider($log)
+    )
+);
 $client = new \GuzzleHttp\Client([
+    'handler' => $handlerStack,
     'base_uri' => $config->getService(),
     'timeout' => 5.0,
     'connect_timeout' => 2.0,
