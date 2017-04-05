@@ -6,7 +6,7 @@ class Retry
 {
     public static function create_decider(\Psr\Log\LoggerInterface $logger = null)
     {
-        return function (
+        return function(
             $try,
             \GuzzleHttp\Psr7\Request $request,
             \GuzzleHttp\Psr7\Response $response = null,
@@ -18,7 +18,9 @@ class Retry
             }
 
             if ($e instanceof \GuzzleHttp\Exception\ConnectException) {
-                if ($logger) $logger->warn(sprintf('Failed try %d: "%s"', $try+1, $e->getMessage()));
+                if ($logger) {
+                    $logger->warn(sprintf('Failed try %d: "%s"', $try+1, $e->getMessage()));
+                }
                 return true;
             }
 
@@ -26,7 +28,7 @@ class Retry
                 if ($response->getStatusCode() >= 500) {
                     if ($logger) {
                         $logger->warn(
-                            sprintf('Failed try %d: status code "%d"', $try+1, $response->getStatusCode())
+                            sprintf('Failed try %d: status code "%d"', $try + 1, $response->getStatusCode())
                         );
                     }
                     return true;
