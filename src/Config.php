@@ -1,6 +1,6 @@
 <?php
 
-namespace Elder;
+namespace Elder2Fs;
 
 use SebastianBergmann\CodeCoverage\RuntimeException;
 use Symfony\Component\Yaml\Yaml;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Elder;
+namespace Elder2Fs;
 
 class Retry
 {

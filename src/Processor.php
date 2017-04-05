@@ -1,5 +1,5 @@
 <?php
-namespace Elder;
+namespace Elder2Fs;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ConnectException;
@@ -39,7 +39,7 @@ class Processor
     }
 
     /**
-     * @param \Elder\Page $page
+     * @param \Elder2Fs\Page $page
      */
     public function process(Page $page)
     {

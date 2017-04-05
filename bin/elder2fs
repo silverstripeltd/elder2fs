@@ -37,16 +37,16 @@ $handler->setFormatter($formatter);
 $log->pushHandler($handler);
 
 // load the configuration
-$config = new \Elder\Config('elder2fs.yml');
+$config = new \Elder2Fs\Config('elder2fs.yml');
 $config->load();
 
 // Set up the root directory
-$root = new \Elder\Dir();
+$root = new \Elder2Fs\Dir();
 // ... and build the tree of pages and directories
 $root->load($config->getPages());
 
 // Make sure that each directory has a folder on disk
-$root->walk('Elder\Dir', function ($dir) use ($log) {
+$root->walk('Elder2Fs\Dir', function ($dir) use ($log) {
     if (!is_dir($dir->path)) {
         $log->info(sprintf('Creating missing "%s"' . PHP_EOL, $dir->path));
         mkdir($dir->path);
@@ -56,7 +56,7 @@ $root->walk('Elder\Dir', function ($dir) use ($log) {
 $handlerStack = \GuzzleHttp\HandlerStack::create(new \GuzzleHttp\Handler\CurlHandler());
 $handlerStack->push(
     \GuzzleHttp\Middleware::retry(
-        \Elder\Retry::create_decider($log)
+        \Elder2Fs\Retry::create_decider($log)
     )
 );
 $client = new \GuzzleHttp\Client([
@@ -67,5 +67,5 @@ $client = new \GuzzleHttp\Client([
 ]);
 
 // Process Page nodes, writing rendered md documents into "content".
-$processor = new \Elder\Processor($client, $config->getVariables(), $log);
-$root->walk('Elder\Page', [$processor, 'process']);
+$processor = new \Elder2Fs\Processor($client, $config->getVariables(), $log);
+$root->walk('Elder2Fs\Page', [$processor, 'process']);
