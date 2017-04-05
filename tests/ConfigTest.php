@@ -1,6 +1,6 @@
 <?php
 
-namespace Elder;
+namespace Elder2Fs;
 
 class ConfigTest extends \PHPUnit_Framework_TestCase
 {
@@ -23,7 +23,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     public function testConfigInstance()
     {
-        $this->assertInstanceOf("Elder\\Config", new Config('fakefile'));
+        $this->assertInstanceOf("Elder2Fs\\Config", new Config('fakefile'));
     }
 
     public function testConfigFileNotFound()

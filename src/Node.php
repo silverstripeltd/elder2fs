@@ -1,6 +1,6 @@
 <?php
 
-namespace Elder;
+namespace Elder2Fs;
 
 /**
  * Node is a building block of a page tree built from an array.
