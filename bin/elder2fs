@@ -62,8 +62,7 @@ $handlerStack->push(
 $client = new \GuzzleHttp\Client([
     'handler' => $handlerStack,
     'base_uri' => $config->getService(),
-    'timeout' => 5.0,
-    'connect_timeout' => 2.0,
+    'timeout' => 10.0,
 ]);
 
 // Process Page nodes, writing rendered md documents into "content".
