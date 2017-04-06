@@ -13,7 +13,7 @@ class Retry
             \GuzzleHttp\Exception\RequestException $e = null
         ) use ($logger) {
             // 18 retries = max ~4 minutes delay (last delay, 2mins). This excludes the actual request time.
-            if ($try >= 18) {
+            if ($try >= 5) {
                 return false;
             }
 
