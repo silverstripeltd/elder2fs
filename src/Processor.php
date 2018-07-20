@@ -44,7 +44,12 @@ class Processor
     public function process(Page $page)
     {
         $this->log->info(sprintf('Processing "%s"' . PHP_EOL, $page->path));
-        $path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
+        if ($page->url) {
+            $u = parse_url($page->url);
+            $path = sprintf('v2/article/%s%s', $u['host'], $u['path']);
+        } else {
+            $path = sprintf('article/%s/%s/%s', $page->version, $page->locale, $page->kb);
+        }
 
         try {
             $response = $this->client->request('POST', $path, [
@@ -62,9 +67,10 @@ class Processor
             return;
         } catch (RequestException $e) {
             $this->log->error(sprintf(
-                'Failed to generate "%s": "%s"' . PHP_EOL,
+                'Failed to request "%s": "%s" (%d)' . PHP_EOL,
                 $page->path,
-                $e->getResponse()->getBody()
+                $e->getResponse()->getBody(),
+                $e->getResponse()->getStatusCode()
             ));
             return;
         } catch (\Exception $e) {

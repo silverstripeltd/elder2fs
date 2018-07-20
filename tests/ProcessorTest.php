@@ -104,7 +104,7 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($this->logHandler->hasErrorRecords());
         list($first, $second) = $this->logHandler->getRecords();
         $this->assertContains('Processing', $first['message']);
-        $this->assertContains('Failed to generate', $second['message']);
+        $this->assertContains('Failed to request', $second['message']);
     }
 
     public function testProperResponse()
@@ -114,6 +114,35 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
         $page = new Page($this->file);
         $page->load([
             'kb' => 'kb0001',
+            'meta' => [
+                'custom' => ['front' => 'matter']
+            ]
+        ]);
+
+        $proc = new Processor($client, [], $this->log);
+        $proc->process($page);
+
+        $expected = <<<HEREDOC
+---
+custom:
+    front: matter
+notoc: true
+
+---
+# title
+Some content
+
+HEREDOC;
+        $this->assertEquals($expected, file_get_contents($this->file));
+    }
+
+    public function testProperResponseV2()
+    {
+        $client = $this->getMockClient(200, "# title\nSome content");
+
+        $page = new Page($this->file);
+        $page->load([
+            'url' => 'https://github.com/someone/something/blob/master/README.md',
             'meta' => [
                 'custom' => ['front' => 'matter']
             ]
