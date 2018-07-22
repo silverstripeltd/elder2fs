@@ -9,7 +9,7 @@ class Dir extends Node
     {
         foreach ($data as $name => $child) {
             $path = sprintf('%s/%s', $this->path, $name);
-            if (empty($child['kb'])) {
+            if (empty($child['kb']) && empty($child['url'])) {
                 // Must be directory if it has no 'kb' entry.
                 $node = new Dir($path, $this);
             } else {

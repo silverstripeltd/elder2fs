@@ -4,7 +4,7 @@ This tool connects to Elder and renders KB articles into regular md files.
 
 ## Installation
 
-	composer require "silverstripe-platform/elder2fs"
+	composer require "silverstripeltd/elder2fs"
 
 ## Usage
 
@@ -16,12 +16,10 @@ In your project root, create `elder2fs.yml`. Here is an example:
         companyName: Terrible Ideas Ltd.
     pages:
       stuff:
-        manual.md:
-          kb: kb003456
-          version: 1.7
-          locale: en_NZ
+        index.md:
+          url: https://github.com/silverstripe/silverstripe-framework/blob/4/docs/en/index.md
         installation.md:
-          kb: kb000224
+          url: https://github.com/silverstripe/silverstripe-framework/tree/4/docs/en/00_Getting_Started/01_Installation/index.md
 
 `elderUrl` is the address at which Elder is running. It's specific to your infrastructure.
 
