@@ -30,3 +30,7 @@ In your project root, create `elder2fs.yml`. Here is an example:
 Once configured, you can run elder2fs by:
 
 	vendor/bin/elder2fs
+
+If it's human operated, you might want to ensure caches are flushed, especially if you have just committed some changes:
+
+	vendor/bin/elder2fs --flush

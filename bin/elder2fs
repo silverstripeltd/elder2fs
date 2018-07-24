@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 
+use Elder2Fs\Middleware;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 
@@ -53,12 +54,17 @@ $root->walk('Elder2Fs\Dir', function ($dir) use ($log) {
     }
 });
 
+$options = getopt('', ['flush']);
+
 $handlerStack = \GuzzleHttp\HandlerStack::create(new \GuzzleHttp\Handler\CurlHandler());
 $handlerStack->push(
     \GuzzleHttp\Middleware::retry(
         \Elder2Fs\Retry::create_decider($log)
     )
 );
+if (isset($options['flush'])) {
+    $handlerStack->push(Middleware::flush());
+}
 $client = new \GuzzleHttp\Client([
     'handler' => $handlerStack,
     'base_uri' => $config->getService(),
